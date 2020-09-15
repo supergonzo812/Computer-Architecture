@@ -7,7 +7,20 @@ class CPU:
 
     def __init__(self):
         """Construct a new CPU."""
-        pass
+        # Create storage for the memory
+        self.ram = [0] * 256
+
+        # Create general purpose registers
+        self.register = [0] * 8
+        self.pc = 0
+
+    def read_from_memory(self, MAR):
+        # MAR = Memory Address Register
+        return self.ram[MAR]
+
+    def write_to_memory(self, MAR, MDR):
+        # MDR = Memory Data Register
+        self.ram[MAR] = MDR
 
     def load(self):
         """Load a program into memory."""
@@ -59,7 +72,39 @@ class CPU:
             print(" %02X" % self.reg[i], end='')
 
         print()
+        
+    def ldi(self, operand_1, operand_2):
+        self.register[operand_1] = operand_2
+    
+    def prn(self, operand_1):
+        print(operand_1)
 
     def run(self):
         """Run the CPU."""
-        pass
+        LDI = 0b10000010
+        PRN = 0b01000111
+        HLT = 0b00000001
+
+        running = True
+
+        while running:
+            # Make an instruction register
+            IR = self.read_from_memory(self.pc)
+            operand_1 = self.read_from_memory(self.pc + 1)
+            operand_2 = self.read_from_memory(self.pc + 2)
+
+            if IR == HLT:
+                running = False
+                self.pc += 1
+            
+            elif IR == LDI:
+                self.ldi(operand_1, operand_2)
+                self.pc += 3
+
+            elif IR == PRN:
+                self.prn(operand_1)
+                self.pc += 2
+            
+            else:
+                print(f'Not a valid input: {bin(IR)}')
+                running = False
