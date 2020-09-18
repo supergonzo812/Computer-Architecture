@@ -2,6 +2,11 @@
 
 import sys
 
+LDI = 0b10000010
+PRN = 0b01000111
+HLT = 0b00000001
+MUL = 0b10100010
+
 class CPU:
     """Main CPU class."""
 
@@ -12,7 +17,9 @@ class CPU:
 
         # Create general purpose registers
         self.register = [0] * 8
+        # Create a program counter
         self.pc = 0
+        self.running = True
 
     def read_from_memory(self, MAR):
         # MAR = Memory Address Register
@@ -24,24 +31,17 @@ class CPU:
 
     def load(self):
         """Load a program into memory."""
-
         address = 0
+        file_name = sys.argv[1]
 
-        # For now, we've just hardcoded a program:
-
-        program = [
-            # From print8.ls8
-            0b10000010, # LDI R0,8
-            0b00000000,
-            0b00001000,
-            0b01000111, # PRN R0
-            0b00000000,
-            0b00000001, # HLT
-        ]
-
-        for instruction in program:
-            self.ram[address] = instruction
-            address += 1
+        with open(file_name) as files:
+            for address, line in enumerate(files):
+                line = line.split("#")
+                try:
+                    value = int(line[0], 2)
+                except ValueError:
+                    continue
+                self.write_to_memory(address, value)
 
 
     def alu(self, op, reg_a, reg_b):
@@ -50,6 +50,8 @@ class CPU:
         if op == "ADD":
             self.reg[reg_a] += self.reg[reg_b]
         #elif op == "SUB": etc
+        elif op == "MUL"
+            self.register[reg_a] *= self.register[reg_b]
         else:
             raise Exception("Unsupported ALU operation")
 
@@ -73,38 +75,52 @@ class CPU:
 
         print()
         
-    def ldi(self, operand_1, operand_2):
+    def ldi(self):
+        operand_1 = self.read_from_memory(self.pc + 1)
+        operand_2 = self.read_from_memory(self.pc +2)
+
         self.register[operand_1] = operand_2
+        self.pc += 3
     
-    def prn(self, operand_1):
+    def prn(self):
+        # Print the value stored at the given register
+        operand_1 = self.read_from_memory(self.pc + 1)
         print(operand_1)
 
+        self.pc += 2
+
+    def hlt(self):
+        self.running = False
+
+    def mul(self):
+        operand_1 = self.read_from_memory(self.pc + 1)
+        operand_2 = self.read_from_memory(self.pc + 2)
+
+        self.alu("MUL", operand_1, operand_2)
+
+        self.pc += 3
+
+    def call_function(self, n):
+
+        branch_table = {
+            LDI = self.ldi,
+            PRN = self.prn,
+            HLT = self.hlt,
+            MUL = self.mul
+        }
+
+        files = branch_table
+
+        if branch_table.get(n) is not None:
+            files()
+        else:
+            print(f'Unknown command {n}')
+            sys.exit(1)
+    
+
     def run(self):
-        """Run the CPU."""
-        LDI = 0b10000010
-        PRN = 0b01000111
-        HLT = 0b00000001
-
-        running = True
-
-        while running:
-            # Make an instruction register
+  
+        while self.running:
+            # Make an instruction register to read the memory address that is stored in the the PC register
             IR = self.read_from_memory(self.pc)
-            operand_1 = self.read_from_memory(self.pc + 1)
-            operand_2 = self.read_from_memory(self.pc + 2)
-
-            if IR == HLT:
-                running = False
-                self.pc += 1
-            
-            elif IR == LDI:
-                self.ldi(operand_1, operand_2)
-                self.pc += 3
-
-            elif IR == PRN:
-                self.prn(operand_1)
-                self.pc += 2
-            
-            else:
-                print(f'Not a valid input: {bin(IR)}')
-                running = False
+            self.call_function(IR)
