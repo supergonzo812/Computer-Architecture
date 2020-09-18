@@ -6,6 +6,8 @@ LDI = 0b10000010
 PRN = 0b01000111
 HLT = 0b00000001
 MUL = 0b10100010
+POP = 0b01000110
+PUSH = 0b01000101
 
 class CPU:
     """Main CPU class."""
@@ -20,6 +22,7 @@ class CPU:
         # Create a program counter
         self.pc = 0
         self.running = True
+        self.sp = len(self.register) - 1
 
     def read_from_memory(self, MAR):
         # MAR = Memory Address Register
@@ -100,13 +103,25 @@ class CPU:
 
         self.pc += 3
 
+    def pop(self):
+        self.register[self.ram[self.pc + 1]] = self.register[self.pc]
+        self.sp += 1 
+        self.pc += 2
+
+    def push(self):
+        self.sp -= 1
+        self.register[self.sp] = self.register[self.ram[self.pc + 1]]
+        self.pc += 2
+
     def call_function(self, n):
 
         branch_table = {
             LDI = self.ldi,
             PRN = self.prn,
             HLT = self.hlt,
-            MUL = self.mul
+            MUL = self.mul,
+            POP = self.pop,
+            PUSH = self.push
         }
 
         files = branch_table
